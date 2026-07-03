@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,8 @@ import {
 } from 'react-native';
 import SidebarLayout from '../../components/SidebarLayout';
 import BackButton from '../../components/BackButton';
+import { useFocusEffect } from '@react-navigation/native';
+import ProfileModal from '../../components/ProfileModal';
 
 // Column definitions with fixed widths for proper table layout
 const COLUMNS = [
@@ -62,6 +64,15 @@ function StatusBadge({ value }) {
 }
 
 export default function ComplaintsListScreen() {
+  const [open, setOpen] = useState(false);
+  const scrollViewRef = useRef(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+    }, [])
+  );
+
   return (
     <SidebarLayout>
       <View style={styles.container}>
@@ -71,7 +82,7 @@ export default function ComplaintsListScreen() {
           <View style={styles.titleWrapper}>
             <Image style={styles.logo} source={require('../../assets/foxrideLogo5.png')} />
           </View>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => setOpen(true)}>
             <Image source={require('../../assets/contactButton.png')}
               style={styles.contactButton}
             />
@@ -82,7 +93,7 @@ export default function ComplaintsListScreen() {
         {/* ── Table Card ── */}
         <View style={styles.card}>
           {/* Outer Vertical Scroll */}
-          <ScrollView showsVerticalScrollIndicator={false}>
+          <ScrollView ref={scrollViewRef} showsVerticalScrollIndicator={false}>
             {/* Inner Horizontal Scroll */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View>
@@ -132,6 +143,7 @@ export default function ComplaintsListScreen() {
           </ScrollView>
         </View>
       </View>
+      <ProfileModal open={open} close={() => setOpen(false)} />
     </SidebarLayout>
   );
 }
@@ -153,7 +165,7 @@ const styles = StyleSheet.create({
     height: 32,
     width: 32,
     resizeMode: 'contain',
-    marginLeft: 60
+    marginLeft: 52
   },
   logo: {
     height: 42,

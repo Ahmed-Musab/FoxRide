@@ -1,23 +1,32 @@
-import React from 'react';
+import React, { useRef, useCallback, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import SidebarLayout from '../../components/SidebarLayout';
 import BackButton from '../../components/BackButton';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
+import ProfileModal from '../../components/ProfileModal';
 
 export default function EmployeeDashboardScreen() {
-    const navigation = useNavigation();
+
+    const [open, setOpen] = useState(false);
+    const scrollViewRef = useRef(null);
+
+    useFocusEffect(
+        useCallback(() => {
+            scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+        }, [])
+    );
 
     return (
         <SidebarLayout>
             <View style={{ flex: 1 }}>
-                <ScrollView style={styles.container} contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+                <ScrollView ref={scrollViewRef} style={styles.container} contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
                     {/* Header Block */}
                     <View style={styles.header}>
                         <BackButton />
                         <View style={styles.titleWrapper}>
                             <Image style={styles.logo} source={require('../../assets/foxrideLogo5.png')} />
                         </View>
-                        <TouchableOpacity>
+                        <TouchableOpacity onPress={() => setOpen(true)}>
                             <Image source={require('../../assets/contactButton.png')}
                                 style={styles.contactButton}
                             />
@@ -163,6 +172,7 @@ export default function EmployeeDashboardScreen() {
                     </View>
                 </ScrollView>
             </View>
+            <ProfileModal open={open} close={() => setOpen(false)} />
         </SidebarLayout>
     );
 }
@@ -186,7 +196,7 @@ const styles = StyleSheet.create({
         height: 32,
         width: 32,
         resizeMode: 'contain',
-        marginLeft: 60
+        marginLeft: 52
     },
     logo: {
         height: 42,

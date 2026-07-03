@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,6 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
-  Pressable,
   Image
 } from 'react-native';
 import SidebarLayout from '../../components/SidebarLayout';
@@ -14,7 +13,8 @@ import BackButton from '../../components/BackButton';
 import { useForm, Controller } from 'react-hook-form';
 import * as yup from 'yup';
 import { yupResolver } from '@hookform/resolvers/yup';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import ProfileModal from '../../components/ProfileModal';
 
 const alertSchema = yup.object().shape({
   vehicleNo: yup.string().required('Vehicle number is required'),
@@ -25,6 +25,7 @@ const alertSchema = yup.object().shape({
 });
 
 export default function AddAlertsScreen() {
+  const [open, setOpen] = useState(false);
   const { control, handleSubmit, formState: { errors } } = useForm({
     resolver: yupResolver(alertSchema),
     defaultValues: {
@@ -37,6 +38,13 @@ export default function AddAlertsScreen() {
   });
 
   const navigation = useNavigation();
+  const scrollViewRef = useRef(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+    }, [])
+  );
 
   const onSubmit = (data) => {
     alert('Alert Submitted Successfully!');
@@ -52,7 +60,7 @@ export default function AddAlertsScreen() {
           <View style={styles.titleWrapper}>
             <Image style={styles.logo} source={require('../../assets/foxrideLogo5.png')} />
           </View>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => setOpen(true)}>
             <Image source={require('../../assets/contactButton.png')}
               style={styles.contactButton}
             />
@@ -61,9 +69,9 @@ export default function AddAlertsScreen() {
         <View style={{ width: '90%', height: 0.5, backgroundColor: '#3d4859ff', alignSelf: 'center' }} />
 
         {/* ── Scrollable Form Card ── */}
-        <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+        <ScrollView ref={scrollViewRef} contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
           <View style={styles.card}>
-            
+
             {/* Vehicle No */}
             <View style={styles.formGroup}>
               <Text style={styles.label}>Vehicle No <Text style={styles.required}>*</Text></Text>
@@ -173,16 +181,15 @@ export default function AddAlertsScreen() {
               <Text style={styles.submitButtonText}>Submit Alert</Text>
             </TouchableOpacity>
           </View>
+
+          <TouchableOpacity style={{ backgroundColor: '#243b55', width: '50%', marginLeft: '25%', justifyContent: 'center', padding: 12, borderRadius: 12, marginTop: 10, marginBottom: 20, alignItems: 'center' }}
+            onPress={() => navigation.navigate('AlertsList')}
+          >
+            <Text style={{ textAlign: 'center', fontWeight: 'bold', color: '#fff', fontSize: 14 }}>View Alerts</Text>
+          </TouchableOpacity>
         </ScrollView>
-
-        {/* View Alerts Navigation Button */}
-        <Pressable style={{ backgroundColor: '#243b55', width: '50%', marginLeft: '25%', justifyContent: 'center', padding: 12, borderRadius: 12, marginBottom: 26, alignItems: 'center' }}
-          onPress={() => navigation.navigate('AlertsList')}
-        >
-          <Text style={{ textAlign: 'center', fontWeight: 'bold', color: '#fff', fontSize: 14 }}>View Alerts</Text>
-        </Pressable>
-
       </View>
+      <ProfileModal open={open} close={() => setOpen(false)} />
     </SidebarLayout>
   );
 }
@@ -205,7 +212,7 @@ const styles = StyleSheet.create({
     height: 32,
     width: 32,
     resizeMode: 'contain',
-    marginLeft: 60
+    marginLeft: 52
   },
   logo: {
     height: 42,
@@ -219,7 +226,7 @@ const styles = StyleSheet.create({
 
   /* ── Scroll Area ── */
   scrollContainer: {
-    paddingBottom: 40,
+    paddingBottom: 100,
   },
 
   /* ── Form Card ── */
