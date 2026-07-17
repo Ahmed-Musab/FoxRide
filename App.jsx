@@ -10,6 +10,10 @@ import RegisterScreen from './src/screens/auth/RegisterScreen';
 import BottomTabs from './src/navigation/bottomTabs';
 import AlertsListScreen from './src/screens/alerts/AlertsListScreen';
 import BookingsListScreen from './src/screens/vehicle/BookingsListScreen';
+import WorkOrderListScreen from './src/screens/workOrder/WorkOrderListScreen';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const queryClient = new QueryClient();
 
 const RootStack = createNativeStackNavigator({
   initialRouteName: 'Splash',
@@ -22,6 +26,7 @@ const RootStack = createNativeStackNavigator({
     AlertsList: AlertsListScreen,
     ComplaintsList: ComplaintsListScreen,
     BookingsList: BookingsListScreen,
+    WorkOrderList: WorkOrderListScreen,
   },
   screenOptions: {
     headerShown: false,
@@ -32,8 +37,10 @@ const Navigation = createStaticNavigation(RootStack);
 
 export default function App() {
   return (
+    <QueryClientProvider client={queryClient}>
     <AuthContextProvider>
       <Navigation />
     </AuthContextProvider>
+    </QueryClientProvider>
   );
 }

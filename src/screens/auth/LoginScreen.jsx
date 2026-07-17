@@ -1,5 +1,5 @@
-import React, { useContext } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, KeyboardAvoidingView, Platform, ScrollView, Pressable } from 'react-native';
+import React, { useContext, useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, KeyboardAvoidingView, Platform, ScrollView, Pressable, Alert, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useForm, Controller } from 'react-hook-form';
 import * as yup from 'yup';
@@ -9,13 +9,15 @@ import LinearGradient from 'react-native-linear-gradient';
 
 const schema = yup.object({
   email: yup.string().email("Invalid email").required("Email is required"),
-  password: yup.string().required("Password is required"),
+  password: yup.string().required("Password is required")
 });
 
 const LoginScreen = () => {
-  const role = 'employee';
-  const { login } = useContext(AuthContext);
+
+  const [role, setRole] = useState('employee');
   const navigation = useNavigation();
+  const { login } = useContext(AuthContext);
+  const [loading, setLoading] = useState(false);
   const { control, handleSubmit, formState: { errors } } = useForm({
     resolver: yupResolver(schema),
     defaultValues: {
@@ -24,9 +26,20 @@ const LoginScreen = () => {
     }
   });
 
-  const onSubmit = () => {
-    login(role);
-    navigation.navigate('EmployeeDashboard');
+  const onSubmit = async (data) => {
+    setLoading(true);
+    try {
+      await login(data.email, data.password, role);
+      navigation.navigate('EmployeeDashboard');
+    } catch (error) {
+      console.log(error);
+      Alert.alert(
+        'Login Failed',
+        error.response?.data?.message || error.message || 'Something went wrong. Please check your network connection.'
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -47,6 +60,30 @@ const LoginScreen = () => {
 
         {/* Form */}
         <View style={styles.formContainer}>
+          <View style={{ marginBottom: 16 }}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.roleSelectorContainer}
+            >
+              {['employee', 'transportAdmin', 'driver'].map((r) => {
+                const label = r === 'transportAdmin' ? 'Transport' : r.charAt(0).toUpperCase() + r.slice(1);
+                const isActive = role === r;
+                return (
+                  <TouchableOpacity
+                    key={r}
+                    onPress={() => setRole(r)}
+                    style={[styles.roleTab, isActive && styles.roleTabActive]}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.roleTabText, isActive && styles.roleTabTextActive]}>
+                      {label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
           <Text style={styles.label}>Email Address</Text>
           <Controller
             name="email"
@@ -98,13 +135,19 @@ const LoginScreen = () => {
           <LinearGradient colors={['#0C7990', '#243b55']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
+            style={styles.buttonGradient}
           >
             <TouchableOpacity
               style={styles.button}
               activeOpacity={0.8}
               onPress={handleSubmit(onSubmit)}
+              disabled={loading}
             >
-              <Text style={styles.buttonText}>Login</Text>
+              {loading ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Text style={styles.buttonText}>Login</Text>
+              )}
             </TouchableOpacity>
           </LinearGradient>
         </View>
@@ -179,13 +222,16 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     elevation: 10
   },
+  buttonGradient: {
+    borderRadius: 8,
+    marginTop: 14,
+    overflow: 'hidden',
+  },
   button: {
     width: '100%',
     height: 50,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 14,
-    paddingBottom: 14
   },
   buttonText: {
     color: '#fff',
@@ -208,6 +254,32 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+  roleSelectorContainer: {
+    paddingVertical: 10,
+    gap: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  roleTab: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  roleTabActive: {
+    backgroundColor: '#243b55',
+    borderColor: '#243b55',
+  },
+  roleTabText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  roleTabTextActive: {
+    color: '#FFFFFF',
+  }
 });
 
 export default LoginScreen;

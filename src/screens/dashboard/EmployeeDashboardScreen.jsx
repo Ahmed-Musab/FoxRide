@@ -1,14 +1,63 @@
 import React, { useRef, useCallback, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import SidebarLayout from '../../components/SidebarLayout';
 import BackButton from '../../components/BackButton';
 import { useFocusEffect } from '@react-navigation/native';
 import ProfileModal from '../../components/ProfileModal';
+import { useQuery } from '@tanstack/react-query';
+import { getBookings } from '../../api/bookings/getBookings';
+import { getPendingBookings } from '../../api/bookings/getPendingBookings';
+import { getApprovedBookings } from '../../api/bookings/getApprovedBookings';
+import { getCompletedBookings } from '../../api/bookings/getCompletedBookings';
+import { getRejectedBookings } from '../../api/bookings/getRejectedBookings';
+import { getRecentPendingBooking } from '../../api/bookings/getRecentPendingBooking';
+import { getRecentApprovedBooking } from '../../api/bookings/getRecentApprovedBooking';
+import { getRecentRejectedBooking } from '../../api/bookings/getRecentRejectedBooking';
 
 export default function EmployeeDashboardScreen() {
 
     const [open, setOpen] = useState(false);
     const scrollViewRef = useRef(null);
+
+    const { data: bookings, isLoading: bookingsLoading, error: bookingsError } = useQuery({
+        queryKey: ["bookings"],
+        queryFn: getBookings,
+    })
+
+    const { data: pendingBookings, isLoading: pendingBookingsLoading, error: pendingBookingsError } = useQuery({
+        queryKey: ["pendingBookings"],
+        queryFn: getPendingBookings,
+    })
+
+    const { data: approvedBookings, isLoading: approvedBookingsLoading, error: approvedBookingsError } = useQuery({
+        queryKey: ["approvedBookings"],
+        queryFn: getApprovedBookings,
+    })
+
+    const { data: completedBookings, isLoading: completedBookingsLoading, error: completedBookingsError } = useQuery({
+        queryKey: ["completedBookings"],
+        queryFn: getCompletedBookings,
+    })
+
+    const { data: rejectedBookings, isLoading: rejectedBookingsLoading, error: rejectedBookingsError } = useQuery({
+        queryKey: ["rejectedBookings"],
+        queryFn: getRejectedBookings,
+    })
+
+    const { data: recentPendingBooking, isLoading: recentPendingBookingLoading, error: recentPendingBookingError } = useQuery({
+        queryKey: ["recentPendingBooking"],
+        queryFn: getRecentPendingBooking,
+    })
+
+    const { data: recentApprovedBooking, isLoading: recentApprovedBookingLoading, error: recentApprovedBookingError } = useQuery({
+        queryKey: ["recentApprovedBooking"],
+        queryFn: getRecentApprovedBooking,
+    })
+
+    const { data: recentRejectedBooking, isLoading: recentRejectedBookingLoading, error: recentRejectedBookingError } = useQuery({
+        queryKey: ["recentRejectedBooking"],
+        queryFn: getRecentRejectedBooking,
+    })
 
     useFocusEffect(
         useCallback(() => {
@@ -48,7 +97,7 @@ export default function EmployeeDashboardScreen() {
                                     <View style={styles.iconContainer}>
                                         <Image source={require('../../assets/allBookingsIcon.png')} style={{ height: 35, width: 35 }} />
                                     </View>
-                                    <Text style={styles.cardValue}>13</Text>
+                                    {bookingsLoading ? <ActivityIndicator size="small" color="#0000ff" /> : bookingsError ? <Text style={[styles.cardValue, { color: 'white' }]}>Error</Text> : <Text style={styles.cardValue}>{bookings?.length || 0}</Text>}
                                 </View>
                                 <View>
                                     <Text style={styles.cardLabel}>All Bookings</Text>
@@ -63,7 +112,7 @@ export default function EmployeeDashboardScreen() {
                                     <View style={styles.iconContainer}>
                                         <Image source={require('../../assets/pendingIcon.png')} style={{ height: 35, width: 35 }} />
                                     </View>
-                                    <Text style={styles.cardValue}>0</Text>
+                                    {pendingBookingsLoading ? <ActivityIndicator size="small" color="#0000ff" /> : pendingBookingsError ? <Text style={[styles.cardValue, { color: 'white' }]}>Error</Text> : <Text style={styles.cardValue}>{pendingBookings?.length || 0}</Text>}
                                 </View>
                                 <View>
                                     <Text style={styles.cardLabel}>Pending</Text>
@@ -78,7 +127,7 @@ export default function EmployeeDashboardScreen() {
                                     <View style={styles.iconContainer}>
                                         <Image source={require('../../assets/approvedIcon.png')} style={{ height: 35, width: 35 }} />
                                     </View>
-                                    <Text style={styles.cardValue}>13</Text>
+                                    {approvedBookingsLoading ? <ActivityIndicator size="small" color="#0000ff" /> : approvedBookingsError ? <Text style={[styles.cardValue, { color: 'white' }]}>Error</Text> : <Text style={styles.cardValue}>{approvedBookings?.length || 0}</Text>}
                                 </View>
                                 <View>
                                     <Text style={styles.cardLabel}>Approved</Text>
@@ -93,7 +142,7 @@ export default function EmployeeDashboardScreen() {
                                     <View style={styles.iconContainer}>
                                         <Image source={require('../../assets/completedIcon.png')} style={{ height: 35, width: 35 }} />
                                     </View>
-                                    <Text style={styles.cardValue}>13</Text>
+                                    {completedBookingsLoading ? <ActivityIndicator size="small" color="#0000ff" /> : completedBookingsError ? <Text style={[styles.cardValue, { color: 'white' }]}>Error</Text> : <Text style={styles.cardValue}>{completedBookings?.length || 0}</Text>}
                                 </View>
                                 <View>
                                     <Text style={styles.cardLabel}>Completed</Text>
@@ -108,7 +157,7 @@ export default function EmployeeDashboardScreen() {
                                     <View style={styles.iconContainer}>
                                         <Image source={require('../../assets/rejectedIcon.png')} style={{ height: 35, width: 35 }} />
                                     </View>
-                                    <Text style={styles.cardValue}>0</Text>
+                                    {rejectedBookingsLoading ? <ActivityIndicator size="small" color="#0000ff" /> : rejectedBookingsError ? <Text style={[styles.cardValue, { color: 'white' }]}>Error</Text> : <Text style={styles.cardValue}>{rejectedBookings?.length || 0}</Text>}
                                 </View>
                                 <View>
                                     <Text style={styles.cardLabel}>Rejected</Text>
@@ -122,51 +171,52 @@ export default function EmployeeDashboardScreen() {
                         <View style={styles.activityContainer}>
                             <Text style={styles.sectionTitle}>Recent Booking Activity</Text>
                             <View style={styles.activityCard}>
-                                {/* Activity Item 1 */}
-                                <View style={styles.activityItem}>
-                                    <View style={styles.activityLeft}>
-                                        <View style={[styles.statusIndicator, { backgroundColor: '#10B981' }]} />
-                                        <View>
-                                            <Text style={styles.activityTitle}>Booking ID: MP31V1234</Text>
-                                            <Text style={styles.activityDate}>Completed on Dec 20, 2024</Text>
-                                            <View style={[styles.statusBadge, { backgroundColor: '#9fffdfff', borderRadius: 5 }]}>
-                                                <Text style={[styles.statusBadgeText, { color: '#047857' }]}>Approved</Text>
+                                {recentPendingBookingLoading ? <ActivityIndicator size="small" color="#0000ff" /> : recentPendingBookingError ? <Text style={[styles.cardValue, { color: 'white' }]}>Error</Text> : recentPendingBooking?.map((item) => (
+                                    <View key={item._id} style={styles.activityItem}>
+                                        <View style={styles.activityLeft}>
+                                            <View style={[styles.statusIndicator, { backgroundColor: '#F59E0B' }]} />
+                                            <View>
+                                                <Text style={styles.activityTitle}>Booking ID: {item._id ? item._id.slice(-6).toUpperCase() : 'N/A'}</Text>
+                                                <Text style={styles.activityDate}>Requested for {item.date ? new Date(item.date).toLocaleDateString() : ''} at {item.time}</Text>
+                                                <View style={[styles.statusBadge, { backgroundColor: '#FEF3C7', borderRadius: 5 }]}>
+                                                    <Text style={[styles.statusBadgeText, { color: '#B45309' }]}>{item.status}</Text>
+                                                </View>
                                             </View>
                                         </View>
                                     </View>
-                                </View>
-
+                                )
+                                )}
+                                {recentApprovedBookingLoading ? <ActivityIndicator size="small" color="#0000ff" /> : recentApprovedBookingError ? <Text style={[styles.cardValue, { color: 'white' }]}>Error</Text> : recentApprovedBooking?.map((item) => (
+                                    <View key={item._id} style={styles.activityItem}>
+                                        <View style={styles.activityLeft}>
+                                            <View style={[styles.statusIndicator, { backgroundColor: '#10B981' }]} />
+                                            <View>
+                                                <Text style={styles.activityTitle}>Booking ID: {item._id ? item._id.slice(-6).toUpperCase() : 'N/A'}</Text>
+                                                <Text style={styles.activityDate}>Approved for {item.date ? new Date(item.date).toLocaleDateString() : ''} at {item.time}</Text>
+                                                <View style={[styles.statusBadge, { backgroundColor: '#D1FAE5', borderRadius: 5 }]}>
+                                                    <Text style={[styles.statusBadgeText, { color: '#047857' }]}>{item.status}</Text>
+                                                </View>
+                                            </View>
+                                        </View>
+                                    </View>
+                                )
+                                )}
+                                {recentRejectedBookingLoading ? <ActivityIndicator size="small" color="#0000ff" /> : recentRejectedBookingError ? <Text style={[styles.cardValue, { color: 'white' }]}>Error</Text> : recentRejectedBooking?.map((item) => (
+                                    <View key={item._id} style={styles.activityItem}>
+                                        <View style={styles.activityLeft}>
+                                            <View style={[styles.statusIndicator, { backgroundColor: '#EF4444' }]} />
+                                            <View>
+                                                <Text style={styles.activityTitle}>Booking ID: {item._id ? item._id.slice(-6).toUpperCase() : 'N/A'}</Text>
+                                                <Text style={styles.activityDate}>Rejected for {item.date ? new Date(item.date).toLocaleDateString() : ''} at {item.time}</Text>
+                                                <View style={[styles.statusBadge, { backgroundColor: '#FEE2E2', borderRadius: 5 }]}>
+                                                    <Text style={[styles.statusBadgeText, { color: '#B91C1C' }]}>{item.status}</Text>
+                                                </View>
+                                            </View>
+                                        </View>
+                                    </View>
+                                )
+                                )}
                                 <View style={{ width: '90%', height: 0.5, backgroundColor: '#3d4859ff', alignSelf: 'center' }} />
-
-                                {/* Activity Item 2 */}
-                                <View style={styles.activityItem}>
-                                    <View style={styles.activityLeft}>
-                                        <View style={[styles.statusIndicator, { backgroundColor: '#F59E0B' }]} />
-                                        <View>
-                                            <Text style={styles.activityTitle}>Booking ID: MP32V9876</Text>
-                                            <Text style={styles.activityDate}>Requested on Dec 24, 2024</Text>
-                                            <View style={[styles.statusBadge, { backgroundColor: '#ffd68fff', borderRadius: 5 }]}>
-                                                <Text style={[styles.statusBadgeText, { color: '#B45309' }]}>Pending</Text>
-                                            </View>
-                                        </View>
-                                    </View>
-                                </View>
-
-                                <View style={{ width: '90%', height: 0.5, backgroundColor: '#3d4859ff', alignSelf: 'center' }} />
-
-                                {/* Activity Item 3 */}
-                                <View style={styles.activityItem}>
-                                    <View style={styles.activityLeft}>
-                                        <View style={[styles.statusIndicator, { backgroundColor: '#EF4444' }]} />
-                                        <View>
-                                            <Text style={styles.activityTitle}>Booking ID: MP31V4321</Text>
-                                            <Text style={styles.activityDate}>Cancelled on Dec 15, 2024</Text>
-                                            <View style={[styles.statusBadge, { backgroundColor: '#ffb8b8ff', borderRadius: 5 }]}>
-                                                <Text style={[styles.statusBadgeText, { color: '#B91C1C' }]}>Rejected</Text>
-                                            </View>
-                                        </View>
-                                    </View>
-                                </View>
                             </View>
                         </View>
                     </View>

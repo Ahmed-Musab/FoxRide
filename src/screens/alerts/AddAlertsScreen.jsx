@@ -15,6 +15,7 @@ import * as yup from 'yup';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import ProfileModal from '../../components/ProfileModal';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const alertSchema = yup.object().shape({
   vehicleNo: yup.string().required('Vehicle number is required'),
@@ -26,6 +27,8 @@ const alertSchema = yup.object().shape({
 
 export default function AddAlertsScreen() {
   const [open, setOpen] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
   const { control, handleSubmit, formState: { errors } } = useForm({
     resolver: yupResolver(alertSchema),
     defaultValues: {
@@ -36,6 +39,25 @@ export default function AddAlertsScreen() {
       status: '',
     }
   });
+
+  const formatDateDisplay = (dateStr) => {
+    if (!dateStr) return 'Select Date';
+    const [year, month, day] = dateStr.split('-');
+    return `${day}/${month}/${year}`;
+  };
+
+  const getDateObject = (dateStr) => {
+    if (!dateStr) return new Date();
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  };
+
+  const formatDateValue = (dateObj) => {
+    const year = dateObj.getFullYear();
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const day = String(dateObj.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
 
   const navigation = useNavigation();
   const scrollViewRef = useRef(null);
@@ -138,15 +160,31 @@ export default function AddAlertsScreen() {
               <Controller
                 control={control}
                 name="date"
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <TextInput
-                    placeholder="DD/MM/YYYY"
-                    placeholderTextColor="#94A3B8"
-                    onBlur={onBlur}
-                    onChangeText={onChange}
-                    value={value}
-                    style={[styles.input, errors.date && styles.inputError]}
-                  />
+                render={({ field: { onChange, value } }) => (
+                  <>
+                    <TouchableOpacity
+                      activeOpacity={0.7}
+                      onPress={() => setShowDatePicker(true)}
+                      style={[styles.input, styles.inputTouchable, errors.date && styles.inputError]}
+                    >
+                      <Text style={[styles.inputText, !value && styles.placeholderText]}>
+                        {formatDateDisplay(value)}
+                      </Text>
+                    </TouchableOpacity>
+                    {showDatePicker && (
+                      <DateTimePicker
+                        value={getDateObject(value)}
+                        mode="date"
+                        display="default"
+                        onChange={(event, selectedDate) => {
+                          setShowDatePicker(false);
+                          if (selectedDate) {
+                            onChange(formatDateValue(selectedDate));
+                          }
+                        }}
+                      />
+                    )}
+                  </>
                 )}
               />
               {errors.date && <Text style={styles.errorText}>{errors.date.message}</Text>}
@@ -267,6 +305,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#0F172A',
     backgroundColor: '#F8FAFC',
+  },
+  inputTouchable: {
+    justifyContent: 'center',
+  },
+  inputText: {
+    fontSize: 14,
+    color: '#0F172A',
+  },
+  placeholderText: {
+    color: '#94A3B8',
   },
   inputError: {
     borderColor: '#EF4444',

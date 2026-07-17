@@ -15,27 +15,43 @@ import ProfileModal from '../../components/ProfileModal';
 import { useForm, Controller } from 'react-hook-form';
 import * as yup from 'yup';
 import { yupResolver } from '@hookform/resolvers/yup';
+import { createBooking } from '../../api/bookings/createBooking';
+import { Picker } from '@react-native-picker/picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const bookingSchema = yup.object().shape({
-  bookingFor: yup.string().required('Booking For is required'),
-  allowanceApproved: yup.boolean(),
-  date: yup.string().required('Date is required'),
-  time: yup.string().required('Time is required'),
+  bookingFor: yup.string().required("Selection is required"),
+  allowanceStaff: yup.boolean(),
+  date: yup.string().required("Start date is required"),
+  time: yup.string().required("Start time is required"),
   multipleDay: yup.boolean(),
+  toDate: yup.string().when("multipleDay", {
+    is: true,
+    then: (schema) => schema.required("End date is required"),
+    otherwise: (schema) => schema.notRequired()
+  }),
+  toTime: yup.string().when("multipleDay", {
+    is: true,
+    then: (schema) => schema.required("End time is required"),
+    otherwise: (schema) => schema.notRequired()
+  }),
   selfDriving: yup.boolean(),
   rentedCar: yup.boolean(),
-  purpose: yup.string().required('Purpose of booking is required'),
-  natureOfBooking: yup.string().required('Nature of booking is required'),
-  locationType: yup.string().required('Location type is required'),
-  department: yup.string().required('Department is required'),
-  employee: yup.string().required('Employee is required'),
-  location: yup.string().required('Location is required'),
-  coordinates: yup.string().required('Coordinates are required'),
+  purpose: yup.string().required("Purpose of booking is required"),
   comments: yup.string(),
+  bookingNature: yup.string().required("Booking nature is required"),
+  locationType: yup.string().required("Location type is required"),
+  department: yup.string().required("Department is required"),
+  location: yup.string().required("Location is required"),
 });
 
 export default function VehicleBookScreen() {
   const [open, setOpen] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [showToDatePicker, setShowToDatePicker] = useState(false);
+  const [showToTimePicker, setShowToTimePicker] = useState(false);
+
   const navigation = useNavigation();
   const scrollViewRef = useRef(null);
 
@@ -45,30 +61,83 @@ export default function VehicleBookScreen() {
     }, [])
   );
 
-  const { control, handleSubmit, formState: { errors } } = useForm({
+  const { control, handleSubmit, watch, formState: { errors } } = useForm({
     resolver: yupResolver(bookingSchema),
     defaultValues: {
       bookingFor: 'Employee',
-      allowanceApproved: false,
+      allowanceStaff: false,
       date: '',
       time: '',
       multipleDay: false,
       selfDriving: false,
       rentedCar: false,
       purpose: '',
-      natureOfBooking: 'Pickup',
-      locationType: 'Single',
-      department: 'Group HR - Education',
-      employee: '',
+      bookingNature: 'Pickup',
+      locationType: 'Single Location',
+      department: '',
       location: '',
-      coordinates: '',
       comments: '',
     }
   });
 
-  const onSubmit = (data) => {
-    alert('Booking Submitted Successfully!');
-    console.log(data);
+  const isMultipleDay = watch('multipleDay');
+
+  const formatDateDisplay = (dateStr) => {
+    if (!dateStr) return 'Select Date';
+    const [year, month, day] = dateStr.split('-');
+    return `${day}/${month}/${year}`;
+  };
+
+  const formatTimeDisplay = (timeStr) => {
+    if (!timeStr) return 'Select Time';
+    const [hoursStr, minutesStr] = timeStr.split(':');
+    const hours = parseInt(hoursStr, 10);
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const displayHours = hours % 12 || 12;
+    const paddedHours = displayHours < 10 ? `0${displayHours}` : displayHours;
+    return `${paddedHours}:${minutesStr} ${ampm}`;
+  };
+
+  const getDateObject = (dateStr) => {
+    if (!dateStr) return new Date();
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  };
+
+  const getTimeObject = (timeStr) => {
+    if (!timeStr) return new Date();
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    const d = new Date();
+    d.setHours(hours, minutes, 0, 0);
+    return d;
+  };
+
+  const formatDateValue = (dateObj) => {
+    const year = dateObj.getFullYear();
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const day = String(dateObj.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const formatTimeValue = (dateObj) => {
+    const hours = String(dateObj.getHours()).padStart(2, '0');
+    const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+  };
+
+  const onSubmit = async (data) => {
+    try {
+      await createBooking(data, );
+      alert('Booking Submitted Successfully!');
+    } catch (error) {
+      console.log('API Error:', error);
+      alert(error.response?.data?.message || 'Failed to submit booking');
+    }
+  };
+
+  const onError = (errors) => {
+    console.log('Validation Errors:', errors);
+    alert('Please fill out all required fields correctly.');
   };
 
   return (
@@ -126,11 +195,11 @@ export default function VehicleBookScreen() {
               {errors.bookingFor && <Text style={styles.errorText}>{errors.bookingFor.message}</Text>}
             </View>
 
-            {/* Allowance Staff Approved */}
+            {/* Allowance Staff */}
             <View style={styles.formGroup}>
               <Controller
                 control={control}
-                name="allowanceApproved"
+                name="allowanceStaff"
                 render={({ field: { onChange, value } }) => (
                   <TouchableOpacity
                     style={styles.checkboxWrapper}
@@ -140,10 +209,11 @@ export default function VehicleBookScreen() {
                     <View style={[styles.checkboxOuter, value && styles.checkboxOuterChecked]}>
                       {value && <Text style={styles.checkboxCheckmark}>✓</Text>}
                     </View>
-                    <Text style={styles.checkboxLabel}>Allowance Staff Approved</Text>
+                    <Text style={styles.checkboxLabel}>Allowance Staff</Text>
                   </TouchableOpacity>
                 )}
               />
+              {errors.allowanceStaff && <Text style={styles.errorText}>{errors.allowanceStaff.message}</Text>}
             </View>
 
             {/* Select Date * */}
@@ -153,18 +223,34 @@ export default function VehicleBookScreen() {
                 <Controller
                   control={control}
                   name="date"
-                  render={({ field: { onChange, onBlur, value } }) => (
-                    <TextInput
-                      placeholder="DD/MM/YYYY"
-                      placeholderTextColor="#a0aec0"
-                      onBlur={onBlur}
-                      onChangeText={onChange}
-                      value={value}
-                      style={[styles.input, errors.date && styles.inputError]}
-                    />
+                  render={({ field: { onChange, value } }) => (
+                    <>
+                      <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={() => setShowDatePicker(true)}
+                        style={[styles.input, styles.inputTouchable, errors.date && styles.inputError]}
+                      >
+                        <Text style={[styles.inputText, !value && styles.placeholderText]}>
+                          {formatDateDisplay(value)}
+                        </Text>
+                      </TouchableOpacity>
+                      {showDatePicker && (
+                        <DateTimePicker
+                          value={getDateObject(value)}
+                          mode="date"
+                          display="default"
+                          onChange={(event, selectedDate) => {
+                            setShowDatePicker(false);
+                            if (selectedDate) {
+                              onChange(formatDateValue(selectedDate));
+                            }
+                          }}
+                        />
+                      )}
+                    </>
                   )}
                 />
-                <Image source={require('../../assets/allBookingsIcon.png')} style={styles.inputIcon} />
+                <Image source={require('../../assets/allBookingsIcon.png')} style={styles.inputIcon} pointerEvents="none" />
               </View>
               {errors.date && <Text style={styles.errorText}>{errors.date.message}</Text>}
             </View>
@@ -176,18 +262,35 @@ export default function VehicleBookScreen() {
                 <Controller
                   control={control}
                   name="time"
-                  render={({ field: { onChange, onBlur, value } }) => (
-                    <TextInput
-                      placeholder="HH:MM AM/PM"
-                      placeholderTextColor="#a0aec0"
-                      onBlur={onBlur}
-                      onChangeText={onChange}
-                      value={value}
-                      style={[styles.input, errors.time && styles.inputError]}
-                    />
+                  render={({ field: { onChange, value } }) => (
+                    <>
+                      <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={() => setShowTimePicker(true)}
+                        style={[styles.input, styles.inputTouchable, errors.time && styles.inputError]}
+                      >
+                        <Text style={[styles.inputText, !value && styles.placeholderText]}>
+                          {formatTimeDisplay(value)}
+                        </Text>
+                      </TouchableOpacity>
+                      {showTimePicker && (
+                        <DateTimePicker
+                          value={getTimeObject(value)}
+                          mode="time"
+                          is24Hour={false}
+                          display="default"
+                          onChange={(event, selectedDate) => {
+                            setShowTimePicker(false);
+                            if (selectedDate) {
+                              onChange(formatTimeValue(selectedDate));
+                            }
+                          }}
+                        />
+                      )}
+                    </>
                   )}
                 />
-                <Image source={require('../../assets/pendingIcon.png')} style={styles.inputIcon} />
+                <Image source={require('../../assets/pendingIcon.png')} style={styles.inputIcon} pointerEvents="none" />
               </View>
               {errors.time && <Text style={styles.errorText}>{errors.time.message}</Text>}
             </View>
@@ -210,6 +313,103 @@ export default function VehicleBookScreen() {
                   </TouchableOpacity>
                 )}
               />
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.sectionLabel}>To Date <Text style={styles.required}>*</Text></Text>
+              <View style={styles.inputWrapperWithIcon}>
+                <Controller
+                  control={control}
+                  name="toDate"
+                  render={({ field: { onChange, value } }) => (
+                    <>
+                      <TouchableOpacity
+                        activeOpacity={0.7}
+                        disabled={!isMultipleDay}
+                        onPress={() => setShowToDatePicker(true)}
+                        style={[
+                          styles.input,
+                          styles.inputTouchable,
+                          !isMultipleDay && { backgroundColor: '#e2e8f0', opacity: 0.6 },
+                          errors.toDate && styles.inputError
+                        ]}
+                      >
+                        <Text style={[
+                          styles.inputText,
+                          !value && styles.placeholderText,
+                          !isMultipleDay && { color: '#a0aec0' }
+                        ]}>
+                          {isMultipleDay ? formatDateDisplay(value) : 'Multiple Day Only'}
+                        </Text>
+                      </TouchableOpacity>
+                      {isMultipleDay && showToDatePicker && (
+                        <DateTimePicker
+                          value={getDateObject(value)}
+                          mode="date"
+                          display="default"
+                          onChange={(event, selectedDate) => {
+                            setShowToDatePicker(false);
+                            if (selectedDate) {
+                              onChange(formatDateValue(selectedDate));
+                            }
+                          }}
+                        />
+                      )}
+                    </>
+                  )}
+                />
+                <Image source={require('../../assets/allBookingsIcon.png')} style={styles.inputIcon} pointerEvents="none" />
+              </View>
+              {errors.toDate && <Text style={styles.errorText}>{errors.toDate.message}</Text>}
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.sectionLabel}>To Time <Text style={styles.required}>*</Text></Text>
+              <View style={styles.inputWrapperWithIcon}>
+                <Controller
+                  control={control}
+                  name="toTime"
+                  render={({ field: { onChange, value } }) => (
+                    <>
+                      <TouchableOpacity
+                        activeOpacity={0.7}
+                        disabled={!isMultipleDay}
+                        onPress={() => setShowToTimePicker(true)}
+                        style={[
+                          styles.input,
+                          styles.inputTouchable,
+                          !isMultipleDay && { backgroundColor: '#e2e8f0', opacity: 0.6 },
+                          errors.toTime && styles.inputError
+                        ]}
+                      >
+                        <Text style={[
+                          styles.inputText,
+                          !value && styles.placeholderText,
+                          !isMultipleDay && { color: '#a0aec0' }
+                        ]}>
+                          {isMultipleDay ? formatTimeDisplay(value) : 'Multiple Day Only'}
+                        </Text>
+                      </TouchableOpacity>
+                      {isMultipleDay && showToTimePicker && (
+                        <DateTimePicker
+                          value={getTimeObject(value)}
+                          mode="time"
+                          is24Hour={false}
+                          display="default"
+                          onChange={(event, selectedDate) => {
+                            setShowToTimePicker(false);
+                            if (selectedDate) {
+                              onChange(formatTimeValue(selectedDate));
+                            }
+                          }}
+                        />
+                      )}
+                    </>
+                  )}
+                />
+                <Image source={require('../../assets/pendingIcon.png')} style={styles.inputIcon} pointerEvents="none" />
+              </View>
+              {errors.toTime && <Text style={styles.errorText}>{errors.toTime.message}</Text>}
             </View>
 
             {/* Self Driving */}
@@ -277,7 +477,7 @@ export default function VehicleBookScreen() {
               <Text style={styles.sectionLabel}>Nature of Booking</Text>
               <Controller
                 control={control}
-                name="natureOfBooking"
+                name="bookingNature"
                 render={({ field: { onChange, value } }) => (
                   <View>
                     <View style={styles.row}>
@@ -317,7 +517,7 @@ export default function VehicleBookScreen() {
                   </View>
                 )}
               />
-              {errors.natureOfBooking && <Text style={styles.errorText}>{errors.natureOfBooking.message}</Text>}
+              {errors.bookingNature && <Text style={styles.errorText}>{errors.bookingNature.message}</Text>}
             </View>
 
             {/* Location Type */}
@@ -330,21 +530,21 @@ export default function VehicleBookScreen() {
                   <View style={styles.row}>
                     <TouchableOpacity
                       style={styles.radioWrapper}
-                      onPress={() => onChange('Single')}
+                      onPress={() => onChange('Single Location')}
                       activeOpacity={0.7}
                     >
                       <View style={styles.radioOuter}>
-                        {value === 'Single' && <View style={styles.radioInner} />}
+                        {value === 'Single Location' && <View style={styles.radioInner} />}
                       </View>
                       <Text style={styles.radioLabel}>Single</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.radioWrapper}
-                      onPress={() => onChange('Multiple')}
+                      onPress={() => onChange('Multiple Locations')}
                       activeOpacity={0.7}
                     >
                       <View style={styles.radioOuter}>
-                        {value === 'Multiple' && <View style={styles.radioInner} />}
+                        {value === 'Multiple Locations' && <View style={styles.radioInner} />}
                       </View>
                       <Text style={styles.radioLabel}>Multiple</Text>
                     </TouchableOpacity>
@@ -362,42 +562,21 @@ export default function VehicleBookScreen() {
                   control={control}
                   name="department"
                   render={({ field: { onChange, onBlur, value } }) => (
-                    <TextInput
-                      placeholder="Group HR - Education"
-                      placeholderTextColor="#0F172A"
-                      onBlur={onBlur}
-                      onChangeText={onChange}
-                      value={value}
-                      style={[styles.input, errors.department && styles.inputError]}
-                    />
+                    <Picker
+                      selectedValue={value}
+                      onValueChange={onChange}
+                      style={[
+                        styles.picker,
+                        errors.department && styles.inputError,
+                      ]}
+                    >
+                      <Picker.Item label="Select Department" value="" enabled={false} />
+                      <Picker.Item label='Human Resource' value='HR' />
+                    </Picker>
                   )}
                 />
-                <Text style={styles.dropdownArrow}>▼</Text>
               </View>
               {errors.department && <Text style={styles.errorText}>{errors.department.message}</Text>}
-            </View>
-
-            {/* Employee */}
-            <View style={styles.formGroup}>
-              <Text style={styles.sectionLabel}>Employee</Text>
-              <View style={styles.dropdownWrapper}>
-                <Controller
-                  control={control}
-                  name="employee"
-                  render={({ field: { onChange, onBlur, value } }) => (
-                    <TextInput
-                      placeholder="Select Employee"
-                      placeholderTextColor="#a0aec0"
-                      onBlur={onBlur}
-                      onChangeText={onChange}
-                      value={value}
-                      style={[styles.input, errors.employee && styles.inputError]}
-                    />
-                  )}
-                />
-                <Text style={styles.dropdownArrow}>▼</Text>
-              </View>
-              {errors.employee && <Text style={styles.errorText}>{errors.employee.message}</Text>}
             </View>
 
             {/* Location * */}
@@ -418,26 +597,6 @@ export default function VehicleBookScreen() {
                 )}
               />
               {errors.location && <Text style={styles.errorText}>{errors.location.message}</Text>}
-            </View>
-
-            {/* Coordinates * */}
-            <View style={styles.formGroup}>
-              <Text style={styles.sectionLabel}>Coordinates <Text style={styles.required}>*</Text></Text>
-              <Controller
-                control={control}
-                name="coordinates"
-                render={({ field: { onChange, onBlur, value } }) => (
-                  <TextInput
-                    placeholder="e.g. 24.7136, 46.6753"
-                    placeholderTextColor="#a0aec0"
-                    onBlur={onBlur}
-                    onChangeText={onChange}
-                    value={value}
-                    style={[styles.input, errors.coordinates && styles.inputError]}
-                  />
-                )}
-              />
-              {errors.coordinates && <Text style={styles.errorText}>{errors.coordinates.message}</Text>}
             </View>
 
             {/* Comments */}
@@ -463,7 +622,7 @@ export default function VehicleBookScreen() {
             {/* Submit Button */}
             <TouchableOpacity
               activeOpacity={0.8}
-              onPress={handleSubmit(onSubmit)}
+              onPress={handleSubmit(onSubmit, onError)}
               style={styles.submitButton}
             >
               <Text style={styles.submitButtonText}>Book Vehicle</Text>
@@ -563,6 +722,16 @@ const styles = StyleSheet.create({
     color: '#243b55',
     backgroundColor: '#f8fafc',
   },
+  inputTouchable: {
+    justifyContent: 'center',
+  },
+  inputText: {
+    fontSize: 14,
+    color: '#243b55',
+  },
+  placeholderText: {
+    color: '#a0aec0',
+  },
   inputError: {
     borderColor: '#EF4444',
   },
@@ -570,6 +739,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#EF4444',
     fontWeight: '500',
+  },
+  picker: {
+    height: 50,
+    width: '100%',
+    color: '#0F172A',
   },
 
   /* ── Radio Buttons ── */
@@ -637,16 +811,19 @@ const styles = StyleSheet.create({
   inputIcon: {
     position: 'absolute',
     right: 14,
-    width: 20,
-    height: 20,
+    width: 16,
+    height: 16,
     resizeMode: 'contain',
     tintColor: '#243b55',
   },
 
   /* ── Dropdowns ── */
   dropdownWrapper: {
-    position: 'relative',
-    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#fff',
   },
   dropdownArrow: {
     position: 'absolute',

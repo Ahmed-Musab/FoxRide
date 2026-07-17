@@ -11,6 +11,7 @@ import alertIcon from '../assets/alertIcon.png';
 import dashboardIcon from '../assets/dashboardIcon.png';
 import allBookingsIcon from '../assets/allBookingsIcon.png';
 import complaintIcon from '../assets/complaintIcon.png';
+import workOrderIcon from '../assets/workOrderIcon.png';
 
 export default function CustomTabBar({ state, descriptors, navigation }) {
     return (
@@ -40,6 +41,11 @@ export default function CustomTabBar({ state, descriptors, navigation }) {
                     case 'Alerts':
                         icon = alertIcon;
                         displayName = 'Alerts';
+                        break;
+
+                    case 'WorkOrder':
+                        icon = workOrderIcon;
+                        displayName = 'Work Order';
                         break;
                 }
 
@@ -102,6 +108,7 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.1,
         shadowRadius: 8,
+        gap: 5
     },
 
     item: {

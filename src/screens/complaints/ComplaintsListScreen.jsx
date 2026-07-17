@@ -5,63 +5,27 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Image
+  Image,
+  ActivityIndicator
 } from 'react-native';
 import SidebarLayout from '../../components/SidebarLayout';
 import BackButton from '../../components/BackButton';
 import { useFocusEffect } from '@react-navigation/native';
 import ProfileModal from '../../components/ProfileModal';
+import { useQuery } from '@tanstack/react-query';
+import { getComplaints } from '../../api/bookings/getComplaints';
 
 // Column definitions with fixed widths for proper table layout
 const COLUMNS = [
-  { key: 'title', label: 'Title', width: 110 },
-  { key: 'type', label: 'Type', width: 130 },
+  { key: 'complaintType', label: 'Type', width: 110 },
+  { key: 'booking', label: 'Booking', width: 130 },
+  { key: 'complaintAgainst', label: 'Complaint Against', width: 150 },
+  { key: 'description', label: 'Description', width: 80 },
   { key: 'priority', label: 'Priority', width: 110 },
-  { key: 'VRN', label: 'VRN', width: 80 },
-  { key: 'assetNo', label: 'Asset No', width: 110 }
+  { key: 'status', label: 'Status', width: 110 },
+  { key: 'employee', label: 'Employee Name', width: 110 },
+  { key: 'complaintDate', label: 'Date', width: 110 },
 ];
-
-// Sample data rows — replace with real data from API/state
-const TABLE_DATA = [
-  {
-    assetNo: 'MP31V1234',
-    VRN: 'MH 04 AY 5987',
-    title: 'Break down',
-    type: 'Mechanical issue',
-    priority: 'High'
-  },
-  {
-    assetNo: 'MP31V5678',
-    VRN: 'DL 03 BK 1122',
-    title: 'Flat Tyre',
-    type: 'Mechanical issue',
-    priority: 'Low'
-  },
-  {
-    assetNo: 'MP31V9101',
-    VRN: 'UP 16 CZ 3344',
-    title: 'Maintenance',
-    type: 'General service',
-    priority: 'Low'
-  }
-];
-
-// Badge colours for status cells
-const BADGE_STYLE = {
-  Active: { bg: '#DCFCE7', text: '#15803D' },
-  Inactive: { bg: '#FEE2E2', text: '#B91C1C' },
-  Pending: { bg: '#FEF3C7', text: '#B45309' },
-  'N/A': { bg: '#F1F5F9', text: '#64748B' },
-};
-
-function StatusBadge({ value }) {
-  const colors = BADGE_STYLE[value] || { bg: '#F1F5F9', text: '#334155' };
-  return (
-    <View style={[styles.badge, { backgroundColor: colors.bg }]}>
-      <Text style={[styles.badgeText, { color: colors.text }]}>{value}</Text>
-    </View>
-  );
-}
 
 export default function ComplaintsListScreen() {
   const [open, setOpen] = useState(false);
@@ -72,6 +36,11 @@ export default function ComplaintsListScreen() {
       scrollViewRef.current?.scrollTo({ y: 0, animated: false });
     }, [])
   );
+
+  const { data: complaints, isLoading: complaintsLoading, error: complaintsError } = useQuery({
+    queryKey: ['complaints'],
+    queryFn: getComplaints,
+  });
 
   return (
     <SidebarLayout>
@@ -112,7 +81,7 @@ export default function ComplaintsListScreen() {
 
                 {/* Table Body */}
                 <View style={styles.tableBodyContainer}>
-                  {TABLE_DATA.map((row, rowIdx) => (
+                  {complaintsLoading ? <ActivityIndicator /> : complaintsError ? <Text>Error fetching complaints</Text> : complaints?.map((row, rowIdx) => (
                     <TouchableOpacity
                       key={rowIdx}
                       activeOpacity={0.75}
@@ -126,13 +95,9 @@ export default function ComplaintsListScreen() {
                           key={col.key}
                           style={[styles.bodyCell, { width: col.width }]}
                         >
-                          {col.badge ? (
-                            <StatusBadge value={row[col.key]} />
-                          ) : (
-                            <Text style={styles.bodyCellText} numberOfLines={1}>
-                              {row[col.key]}
-                            </Text>
-                          )}
+                          <Text style={styles.bodyCellText} numberOfLines={1}>
+                            {row[col.key]}
+                          </Text>
                         </View>
                       ))}
                     </TouchableOpacity>

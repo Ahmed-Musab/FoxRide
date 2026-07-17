@@ -6,39 +6,28 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
+  ActivityIndicator
 } from 'react-native';
 import SidebarLayout from '../../components/SidebarLayout';
 import BackButton from '../../components/BackButton';
 import { useFocusEffect } from '@react-navigation/native';
 import ProfileModal from '../../components/ProfileModal';
 import { useQuery } from '@tanstack/react-query';
-import { getBookings } from '../../api/bookings/getBookings';
+import { getWorkOrders } from '../../api/bookings/getWorkOrders';
 
 // Column definitions with fixed widths for proper table layout
 const COLUMNS = [
-  { key: 'bookingFor', label: 'Booking For', width: 110 },
-  { key: 'employee', label: 'Employee Name', width: 130 },
-  { key: 'allowanceStaff', label: 'Allowance Staff', width: 110 },
-  { key: 'date', label: 'Date', width: 80 },
-  { key: 'time', label: 'Time', width: 110 },
-  { key: 'multipleDay', label: 'Multiple Day', width: 90 },
-  { key: 'toDate', label: 'To Date', width: 120, badge: true },
-  { key: 'toTime', label: 'To Time', width: 110 },
-  { key: 'selfDriving', label: 'Assignment Type', width: 120, badge: true },
-  { key: 'rentedCar', label: 'Rented Car', width: 120 },
-  { key: 'purpose', label: 'Purpose', width: 110 },
-  { key: 'comments', label: 'Comments', width: 110 },
-  { key: 'bookingNature', label: 'Booking Nature', width: 110 },
-  { key: 'locationType', label: 'Location Type', width: 110 },
-  { key: 'department', label: 'Department', width: 110 },
+  { key: 'vrn', label: 'VRN', width: 100 },
+  { key: 'workType', label: 'Work Type', width: 130 },
+  { key: 'vendor', label: 'Vendor', width: 130 },
   { key: 'location', label: 'Location', width: 110 },
+  { key: 'invoiceAmount', label: 'Amount', width: 120 },
+  { key: 'date', label: 'Date', width: 110 },
   { key: 'status', label: 'Status', width: 110 },
-  { key: 'assignedVehicle', label: 'Assigned Vehicle', width: 110 },
-  { key: 'driver', label: 'Driver', width: 110 }
-
+  { key: 'comments', label: 'Comments', width: 150 },
 ];
 
-export default function BookingsListScreen() {
+export default function WorkOrderListScreen() {
   const [open, setOpen] = useState(false);
   const scrollViewRef = useRef(null);
 
@@ -48,10 +37,31 @@ export default function BookingsListScreen() {
     }, [])
   );
 
-  const { data: bookings, isLoading: bookingsLoading, error: bookingsError } = useQuery({
-    queryKey: ['bookings'],
-    queryFn: getBookings
+  const { data: workOrders, isLoading: workOrdersLoading, error: workOrdersError } = useQuery({
+    queryKey: ['workOrders'],
+    queryFn: getWorkOrders,
   });
+
+  const formatDateDisplay = (dateStr) => {
+    if (!dateStr) return '';
+    const dateObj = new Date(dateStr);
+    if (isNaN(dateObj.getTime())) return dateStr;
+    const year = dateObj.getFullYear();
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const day = String(dateObj.getDate()).padStart(2, '0');
+    return `${day}/${month}/${year}`;
+  };
+
+  const getStatusBadgeStyle = (status) => {
+    switch (status) {
+      case 'Completed':
+        return { bg: '#DCFCE7', text: '#15803D' };
+      case 'Approved':
+        return { bg: '#DBEAFE', text: '#1D4ED8' };
+      default:
+        return { bg: '#FEF3C7', text: '#D97706' };
+    }
+  };
 
   return (
     <SidebarLayout>
@@ -92,28 +102,59 @@ export default function BookingsListScreen() {
 
                 {/* Table Body */}
                 <View style={styles.tableBodyContainer}>
-                  {bookings?.map((row, rowIdx) => (
-                    <TouchableOpacity
-                      key={rowIdx}
-                      activeOpacity={0.75}
-                      style={[
-                        styles.tableRow,
-                        rowIdx % 2 === 0 ? styles.rowEven : styles.rowOdd,
-                      ]}
-                    >
-                      {COLUMNS.map((col) => (
-                        <View
-                          key={col.key}
-                          style={[styles.bodyCell, { width: col.width }]}
-                        >
-                          <Text style={styles.bodyCellText} numberOfLines={1}>
-                            {!row[col.key] && typeof row[col.key] !== 'boolean' && 'N/A'}
-                            {typeof row[col.key] === 'boolean' ? row[col.key] ? "Yes" : "No" : row[col.key]}
-                          </Text>
-                        </View>
-                      ))}
-                    </TouchableOpacity>
-                  ))}
+                  {workOrdersLoading ? (
+                    <ActivityIndicator style={{ marginTop: 24 }} color="#243b55" />
+                  ) : workOrdersError ? (
+                    <Text style={styles.errorText}>Error fetching work orders</Text>
+                  ) : workOrders && workOrders.length === 0 ? (
+                    <Text style={styles.emptyText}>No work orders logged yet.</Text>
+                  ) : (
+                    workOrders?.map((row, rowIdx) => (
+                      <TouchableOpacity
+                        key={rowIdx}
+                        activeOpacity={0.75}
+                        style={[
+                          styles.tableRow,
+                          rowIdx % 2 === 0 ? styles.rowEven : styles.rowOdd,
+                        ]}
+                      >
+                        {COLUMNS.map((col) => {
+                          let cellValue = row[col.key];
+
+                          // Custom formats
+                          if (col.key === 'date') {
+                            cellValue = formatDateDisplay(cellValue);
+                          } else if (col.key === 'invoiceAmount') {
+                            cellValue = `Rs. ${Number(cellValue || 0).toLocaleString()}`;
+                          }
+
+                          if (col.key === 'status') {
+                            const badge = getStatusBadgeStyle(cellValue);
+                            return (
+                              <View key={col.key} style={[styles.bodyCell, { width: col.width }]}>
+                                <View style={[styles.badge, { backgroundColor: badge.bg }]}>
+                                  <Text style={[styles.badgeText, { color: badge.text }]}>
+                                    {cellValue || 'Pending'}
+                                  </Text>
+                                </View>
+                              </View>
+                            );
+                          }
+
+                          return (
+                            <View
+                              key={col.key}
+                              style={[styles.bodyCell, { width: col.width }]}
+                            >
+                              <Text style={styles.bodyCellText} numberOfLines={1}>
+                                {cellValue !== undefined && cellValue !== null ? String(cellValue) : ''}
+                              </Text>
+                            </View>
+                          );
+                        })}
+                      </TouchableOpacity>
+                    ))
+                  )}
                 </View>
               </View>
             </ScrollView>
@@ -152,12 +193,6 @@ const styles = StyleSheet.create({
   titleWrapper: {
     marginTop: 11,
     marginLeft: 75
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#ffffff',
-    letterSpacing: 0.3,
   },
 
   /* ── Card wrapper ── */
@@ -231,12 +266,17 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.3,
   },
-
-  /* ── Subtitle ── */
-  headerSubtitle: {
-    fontSize: 13,
+  errorText: {
+    color: '#EF4444',
+    textAlign: 'center',
+    marginTop: 20,
+    fontSize: 14,
+  },
+  emptyText: {
+    color: '#64748B',
+    textAlign: 'center',
+    marginTop: 30,
+    fontSize: 14,
     fontWeight: '500',
-    color: '#94A3B8',
-    letterSpacing: 0.3,
   }
 });

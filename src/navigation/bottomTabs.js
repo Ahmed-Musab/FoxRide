@@ -3,6 +3,7 @@ import EmployeeDashboardScreen from '../screens/dashboard/EmployeeDashboardScree
 import AddComplaintScreen from '../screens/complaints/AddComplaintScreen';
 import VehicleBookScreen from '../screens/vehicle/VehicleBookScreen';
 import AddAlertsScreen from '../screens/alerts/AddAlertsScreen';
+import CreateWorkOrderScreen from '../screens/workOrder/CreateWorkOrderScreen';
 import CustomTabBar from './customTabBar';
 
 const MyTabs = createBottomTabNavigator({
@@ -15,6 +16,7 @@ const MyTabs = createBottomTabNavigator({
         Dashboard: EmployeeDashboardScreen,
         Bookings: VehicleBookScreen,
         Complaints: AddComplaintScreen,
+        WorkOrder: CreateWorkOrderScreen,
         Alerts: AddAlertsScreen
     },
 });
